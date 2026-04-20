@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ar" dir="rtl" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&amp;family=Amiri:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: 'Noto Naskh Arabic', serif; }
+
+  .card-container { perspective: 1200px; }
+  .card-inner {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+    position: relative;
+  }
+  .card-inner.flipped { transform: rotateY(180deg); }
+  .card-front, .card-back {
+    backface-visibility: hidden;
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .card-back { transform: rotateY(180deg); }
+
+  .slide-in { animation: slideIn 0.35s ease-out; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .category-btn.active {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 2px currentColor;
+  }
+
+  .progress-fill {
+    transition: width 0.4s ease;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto" style="background: #0f172a;">
+  </div>
+  <script>
+const defaultConfig = {
+  app_title: "بطاقات الفقه الحنفي",
+  background_color: "#0f172a",
+  surface_color: "#1e293b",
+  text_color: "#e2e8f0",
+  primary_color: "#f59e0b",
+  secondary_color: "#334155"
+};
+
+const categories = [
+  { id: "zakat", name: "الزكاة", icon: "hand-coins", color: "#f59e0b" },
+  { id: "fasting", name: "الصوم والاعتكاف", icon: "moon", color: "#8b5cf6" },
+  { id: "hajj", name: "الحج", icon: "map-pin", color: "#10b981" },
+  { id: "udhiya", name: "الأضحية", icon: "heart", color: "#ef4444" },
+  { id: "misc", name: "الحظر والإباحة", icon: "scale", color: "#3b82f6" }
+];
+
+const allCards = {
+  zakat: [
+    { q: "تصدق بجميع ماله ولم ينوِ الزكاة (عند زفر)؟", a: "لا تسقط عنه الزكاة", note: "لأن النية شرط في الزكاة" },
+    { q: "ما حكم زكاة مال الضمار؟", a: "لا زكاة فيه", note: "لعدم تمام الملك والتمكن من الأداء" },
+    { q: "ما حكم زكاة مال الضمار عند زُفَر؟", a: "تجب الزكاة فيه", note: "لأنه يعتبر الملك قائماً" },
+    { q: "ما حكم الزكاة في المال المستفاد المجانس؟", a: "تجب وتُزكّى مع الأصل", note: "يُضم إلى النصاب الأصلي" },
+    { q: "هل يجوز دفع القيمة في الزكاة؟", a: "نعم، يجوز", note: "عند الحنفية يجوز دفع القيمة بدلاً من العين" },
+    { q: "ملك نصاباً فعجّل الزكاة قبل الحول لسنة أو أكثر؟", a: "يجوز التعجيل", note: "لأن سبب الوجوب وهو النصاب قد تحقق" },
+    { q: "ما حكم من امتنع عن أداء الزكاة؟", a: "يحبسه الإمام حتى يؤدي", note: "وللإمام أخذها ووضعها في مصارفها" },
+    { q: "من مات وعليه زكاة، هل تؤخذ من تركته؟", a: "تؤخذ من تركته إن أوصى بها", note: "تخرج من الثلث عند الحنفية" },
+    { q: "ما حكم زكاة السائمة المعدّة للحمل والركوب؟", a: "لا زكاة فيها", note: "لأنها ليست للنماء والتجارة" },
+    { q: "بيّن مصارف الزكاة.", a: "ثمانية أصناف: الفقراء، المساكين، العاملون عليها، المؤلفة قلوبهم، في الرقاب، الغارمون، في سبيل الله، وابن السبيل", note: "الدليل: سورة التوبة آية 60" },
+    { q: "ما حكم دفع الزكاة إلى ذوي القرابة؟", a: "لا تدفع لمن بينك وبينه ولادة (الأصول والفروع)، ويجوز لباقي الأقارب", note: "بل دفعها للأقارب أفضل: صدقة وصلة رحم" },
+    { q: "لو أعطى نصاب الزكاة لفقير واحد؟", a: "يجوز ذلك", note: "لتحقق المصرف بدفعها للفقير" },
+    { q: "دفع الزكاة لفقير فظهر أنه غني؟", a: "أجزأت عنه", note: "لأنه أدى ما عليه باجتهاده" },
+    { q: "دفعها في ظلمة فظهر أنه أبوه أو ابنه؟", a: "لا تجزئ", note: "لأن الأصول والفروع لا يجوز دفع الزكاة إليهم" },
+    { q: "ما حكم زكاة الفطر وعلى من تجب؟", a: "واجبة على كل مسلم حر يملك نصاباً فاضلاً عن حوائجه الأصلية", note: "تجب عنه وعمن يعولهم" },
+    { q: "ما مقدار زكاة الفطر؟", a: "نصف صاع من بُرّ أو صاع من تمر أو شعير", note: "أو قيمة ذلك عند الحنفية" },
+    { q: "هل يجوز إخراج القيمة في صدقة الفطر؟", a: "نعم يجوز", note: "وهو مذهب الحنفية لتحقيق مصلحة الفقير" },
+    { q: "متى تجب زكاة الفطر؟", a: "تجب بطلوع فجر يوم العيد", note: "ويستحب إخراجها قبل صلاة العيد" },
+  ],
+  fasting: [
+    { q: "ما الصوم لغة وشرعاً؟", a: "لغة: الإمساك. شرعاً: الإمساك عن المفطرات من طلوع الفجر إلى غروب الشمس مع النية", note: "ركنه الإمساك" },
+    { q: "ما حكم النية في صيام رمضان؟", a: "تجزئ النية من الليل أو قبل الزوال", note: "بأي نية كانت، وتشترط التعيين في النذر المعين" },
+    { q: "ما حكم صوم المريض والمسافر؟", a: "يجوز لهما الفطر مع وجوب القضاء", note: "الدليل: {فمن كان منكم مريضاً أو على سفر فعدة من أيام أخر}" },
+    { q: "ما حكم صوم يوم الشك؟", a: "يكره تنزيهاً صومه بنية رمضان، ويجوز بنية التطوع", note: "يوم الشك: يوم 30 شعبان إذا لم تُرَ الهلال" },
+    { q: "ما حكم نذر صوم يوم العيد وأيام التشريق؟", a: "النذر ينعقد ويحرم الصوم فيها ويجب القضاء", note: "لورود النهي عن صوم هذه الأيام" },
+    { q: "ما الاعتكاف وما حكمه؟", a: "اللبث في المسجد مع النية، وهو سنة مؤكدة في العشر الأواخر من رمضان", note: "وهو سنة كفاية" },
+    { q: "ما يحرم على المعتكف؟", a: "الوطء ودواعيه معاً", note: "لقوله تعالى: {ولا تباشروهن وأنتم عاكفون في المساجد}" },
+    { q: "جامع المعتكف ليلاً أو نهاراً عامداً أو ناسياً؟", a: "بطل اعتكافه", note: "الجماع مبطل مطلقاً في الاعتكاف" },
+  ],
+  hajj: [
+    { q: "عرّف الحج لغة وشرعاً؟", a: "لغة: القصد إلى الشيء المعظم. شرعاً: قصد البيت الحرام لأداء أفعال مخصوصة في وقت مخصوص", note: "فرض عين مرة في العمر" },
+    { q: "ما المصطلح: القصد إلى الشيء المعظم؟", a: "الحج", note: "تعريفه اللغوي" },
+    { q: "ما المصطلح: قصد موضع مخصوص بصفة مخصوصة في وقت مخصوص؟", a: "العمرة", note: "وهي سنة مؤكدة عند الحنفية" },
+    { q: "ما يوم التروية؟", a: "اليوم الثامن من ذي الحجة", note: "سُمّي بذلك لأن الحجاج كانوا يرتوون فيه من الماء" },
+    { q: "ما حكم تقديم الإحرام على ميقاته الزمني؟", a: "يجوز مع الكراهة التنزيهية", note: "الأفضل الإحرام من الميقات" },
+    { q: "ما حكم قص الأظافر لمن أراد الإحرام؟", a: "مستحب قبل الإحرام", note: "من سنن الإحرام التنظف" },
+    { q: "ما حكم طواف الوداع للآفاقي؟", a: "واجب على غير أهل مكة", note: "يجب على من أراد مغادرة مكة" },
+    { q: "ما حكم صيد السمك (البحر) للمحرم؟", a: "جائز ولا شيء فيه", note: "الممنوع صيد البر فقط للمحرم" },
+  ],
+  udhiya: [
+    { q: "ما حكم الأضحية عند أبي حنيفة؟", a: "واجبة", note: "على كل مسلم حر مقيم موسر" },
+    { q: "ما حكم الأضحية عند أبي يوسف ومحمد؟", a: "سنة مؤكدة", note: "وهو قول الجمهور" },
+    { q: "البقرة في الأضحية تجزئ عن كم شخص؟", a: "تجزئ عن سبعة أشخاص", note: "وكذلك البعير (الجمل)" },
+    { q: "ذبح أضحية غيره بغير إذنه؟", a: "جاز استحساناً", note: "لأن الإذن ثابت دلالةً بالعرف" },
+  ],
+  misc: [
+    { q: "ما الاحتكار وما حكمه؟", a: "شراء الطعام وحبسه ليغلو سعره. حكمه: حرام", note: "لحديث: «لا يحتكر إلا خاطئ»" },
+    { q: "نظر الرجل لعورة المرأة لغير ضرورة؟", a: "لا يجوز (حرام)", note: "إلا لضرورة كالعلاج" },
+    { q: "تقبيل يد العالم والسلطان العادل؟", a: "يجوز", note: "إذا كان للتعظيم في الدين لا للدنيا" },
+    { q: "لبس خاتم الفضة للرجال؟", a: "مباح", note: "ولبسه سنة لمن يحتاج إليه كالحاكم" },
+    { q: "كم يحل للرجال من لبس الحرير؟", a: "مقدار أربع أصابع كالعَلَم", note: "ما زاد عن ذلك حرام على الرجال" },
+    { q: "ما حكم لبس خاتم الفضة لمن يحتاج إليه؟", a: "سنة", note: "كالسلطان والقاضي للختم" },
+  ]
+};
+
+let currentCategory = "zakat";
+let currentIndex = 0;
+let flipped = false;
+let knownCards = {};
+
+// Initialize known tracking
+Object.keys(allCards).forEach(k => {
+  knownCards[k] = new Set();
+});
+
+function getConfig() {
+  return window.elementSdk?.config || defaultConfig;
+}
+
+function render() {
+  const c = getConfig();
+  const app = document.getElementById("app");
+  app.style.background = c.background_color;
+  app.style.color = c.text_color;
+
+  const cards = allCards[currentCategory];
+  const card = cards[currentIndex];
+  const catObj = categories.find(x => x.id === currentCategory);
+  const known = knownCards[currentCategory];
+  const progress = cards.length > 0 ? Math.round((known.size / cards.length) * 100) : 0;
+
+  app.innerHTML = `
+    <div class="h-full w-full flex flex-col p-4 md:p-6 max-w-2xl mx-auto">
+      <!-- Header -->
+      <header class="text-center mb-4 flex-shrink-0">
+        <h1 id="mainTitle" class="text-2xl md:text-3xl font-bold mb-1" style="font-family:'Amiri',serif; color:${c.primary_color};">${c.app_title}</h1>
+        <p class="text-sm opacity-60">اضغط على البطاقة لقلبها</p>
+      </header>
+
+      <!-- Category Tabs -->
+      <nav class="flex gap-2 overflow-x-auto pb-2 mb-4 flex-shrink-0" style="scrollbar-width:thin;" aria-label="الأقسام">
+        ${categories.map(cat => `
+          <button onclick="switchCategory('${cat.id}')"
+            class="category-btn flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${cat.id === currentCategory ? 'active' : ''}"
+            style="background:${cat.id === currentCategory ? cat.color + '22' : c.secondary_color};
+                   color:${cat.id === currentCategory ? cat.color : c.text_color};
+                   border:1px solid ${cat.id === currentCategory ? cat.color : 'transparent'};">
+            ${cat.name}
+          </button>
+        `).join("")}
+      </nav>
+
+      <!-- Progress -->
+      <div class="flex-shrink-0 mb-4">
+        <div class="flex justify-between text-xs mb-1 opacity-70">
+          <span>${currentIndex + 1} / ${cards.length}</span>
+          <span>✅ ${known.size} من ${cards.length} (${progress}%)</span>
+        </div>
+        <div class="h-1.5 rounded-full" style="background:${c.secondary_color}">
+          <div class="progress-fill h-full rounded-full" style="width:${progress}%;background:${catObj.color};"></div>
+        </div>
+      </div>
+
+      <!-- Card -->
+      <div class="flex-1 flex flex-col min-h-0">
+        <div class="card-container flex-1 cursor-pointer slide-in" onclick="flipCard()" style="min-height:220px;">
+          <div class="card-inner w-full h-full ${flipped ? 'flipped' : ''}">
+            <div class="card-front" style="background: linear-gradient(135deg, ${c.surface_color}, ${c.secondary_color}); border: 1px solid ${catObj.color}33;">
+              <div class="text-xs font-bold tracking-wider mb-4 uppercase" style="color:${catObj.color};">❓ السؤال</div>
+              <p class="text-lg md:text-xl leading-relaxed font-semibold" style="font-family:'Amiri',serif;">${card.q}</p>
+            </div>
+            <div class="card-back" style="background: linear-gradient(135deg, ${catObj.color}15, ${catObj.color}08); border: 1px solid ${catObj.color}55;">
+              <div class="text-xs font-bold tracking-wider mb-3 uppercase" style="color:${catObj.color};">✅ الإجابة</div>
+              <p class="text-lg md:text-xl leading-relaxed font-bold mb-4" style="color:${catObj.color}; font-family:'Amiri',serif;">${card.a}</p>
+              ${card.note ? `<p class="text-sm opacity-60 border-t pt-3 mt-2" style="border-color:${catObj.color}33;">📝 ${card.note}</p>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex-shrink-0 mt-4 space-y-3">
+        <div class="flex gap-3 justify-center">
+          <button onclick="markKnown()" class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
+            style="background:${known.has(currentIndex) ? catObj.color : 'transparent'};
+                   color:${known.has(currentIndex) ? c.background_color : catObj.color};
+                   border:2px solid ${catObj.color};">
+            ${known.has(currentIndex) ? '✅ تم الحفظ' : '☐ حفظتها'}
+          </button>
+        </div>
+        <div class="flex gap-3 justify-center">
+          <button onclick="prevCard()" class="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+            style="background:${c.secondary_color};">
+            → السابق
+          </button>
+          <button onclick="nextCard()" class="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+            style="background:${catObj.color}; color:${c.background_color};">
+            التالي ←
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+function flipCard() { flipped = !flipped; render(); }
+function nextCard() {
+  const len = allCards[currentCategory].length;
+  currentIndex = (currentIndex + 1) % len;
+  flipped = false;
+  render();
+}
+function prevCard() {
+  const len = allCards[currentCategory].length;
+  currentIndex = (currentIndex - 1 + len) % len;
+  flipped = false;
+  render();
+}
+function switchCategory(id) {
+  currentCategory = id;
+  currentIndex = 0;
+  flipped = false;
+  render();
+}
+function markKnown() {
+  const s = knownCards[currentCategory];
+  if (s.has(currentIndex)) s.delete(currentIndex); else s.add(currentIndex);
+  render();
+}
+
+// Element SDK
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => { render(); },
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); }},
+      { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); }},
+      { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); }},
+      { get: () => config.primary_color || defaultConfig.primary_color, set: v => { config.primary_color = v; window.elementSdk.setConfig({ primary_color: v }); }},
+      { get: () => config.secondary_color || defaultConfig.secondary_color, set: v => { config.secondary_color = v; window.elementSdk.setConfig({ secondary_color: v }); }},
+    ],
+    borderables: [],
+    fontEditable: undefined,
+    fontSizeable: undefined
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ["app_title", config.app_title || defaultConfig.app_title]
+  ])
+});
+
+render();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ef64a34f4e8d881',t:'MTc3NjcxMDU1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
